@@ -1,0 +1,176 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.Audio;
+using System.Collections.Generic;
+using TMPro; //can use if you want, if not just use normal .UI
+using UnityEngine.Events;
+using UnityEngine.UI;
+
+//hopefully its straight forward what I have done, I won't have to explain much, if you have any questions, ask away! In the git ofcourse
+
+public class MainMenuAndOptions : MonoBehaviour
+{
+    [Header("Audio")]
+    public AudioMixer audioMixer;
+
+    [Header("All UI Elements")]
+    public TMP_Dropdown m_Resolution;
+    public TMP_Dropdown m_Quality;
+    public Toggle m_Vsync;
+    public Toggle m_Fullscreen;
+    public Slider m_Volume;
+
+    private int screenInt;
+    private int syncint;
+
+    Resolution[] resolutions;
+
+    private bool isFullscreen;
+    private bool changeVsync;
+
+    const string prefName = "optionvalue";
+    const string resName = "resolutionoption";
+
+    private void Awake()
+    {
+        screenInt = PlayerPrefs.GetInt("togglestate");
+        syncint = PlayerPrefs.GetInt("syncstate");
+
+        QualitySettings.vSyncCount = PlayerPrefs.GetInt("syncstate");
+
+        if (syncint == 1)
+        {
+            changeVsync = true;
+            m_Vsync.isOn = true;
+        }
+        else
+        {
+            m_Vsync.isOn = false;
+        }
+
+        if (screenInt == 1)
+        {
+            isFullscreen = true;
+            m_Fullscreen.isOn = true;
+        }
+        else
+        {
+            m_Fullscreen.isOn = false;
+        }
+
+        m_Resolution.onValueChanged.AddListener(new UnityAction<int>(index =>
+        {
+            PlayerPrefs.SetInt(resName, m_Resolution.value);
+            PlayerPrefs.Save();
+        }));
+        m_Quality.onValueChanged.AddListener(new UnityAction<int>(index =>
+        {
+            PlayerPrefs.SetInt(prefName, m_Quality.value);
+            PlayerPrefs.Save();
+        }));
+
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+    }
+
+    private void Start()
+    {
+        //I mostly used PlayerPrefs to catch our settings, we need start to apply previous settings when the game starts
+        m_Volume.value = PlayerPrefs.GetFloat("volume", 0f);
+        //make sure that you expose a audioMixer master and set the float name to "volume" for this to work (without the "")
+        audioMixer.SetFloat("volume", PlayerPrefs.GetFloat("volume"));
+
+        m_Quality.value = PlayerPrefs.GetInt(prefName, 3);
+
+        resolutions = Screen.resolutions;
+
+        m_Resolution.ClearOptions();
+
+        List<string> options = new List<string>();
+
+        int currentResolutionIndex = 0;
+
+        for (int i = 0; i < resolutions.Length; i++)
+        {
+            string option = resolutions[i].width + " x " + resolutions[i].height;
+            options.Add(option);
+
+            if (resolutions[i].width == Screen.currentResolution.width &&
+                resolutions[i].height == Screen.currentResolution.height)
+            {
+                currentResolutionIndex = i;
+            }
+        }
+
+        m_Resolution.AddOptions(options);
+        m_Resolution.value = currentResolutionIndex;
+        m_Resolution.RefreshShownValue();
+    }
+
+    public void SetResolution (int resolutionIndex)
+    {
+        Resolution resolution = resolutions[resolutionIndex];
+        Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreen);
+    }
+
+    public void Quit()
+    {
+        //just calls application.quit nothing much
+        Application.Quit();
+    }
+
+    public void SetVolume (float volume)
+    {
+        PlayerPrefs.SetFloat("volume", volume);
+        audioMixer.SetFloat("volume", PlayerPrefs.GetFloat("volume"));
+    }
+
+    public void Quality(int qualityIndex)
+    {
+        QualitySettings.SetQualityLevel(qualityIndex);
+        QualitySettings.vSyncCount = PlayerPrefs.GetInt("syncstate");
+    }
+
+    public void Fullscreen (bool isFullscreen)
+    {
+        Screen.fullScreen = isFullscreen;
+
+        if (isFullscreen == false)
+        {
+            PlayerPrefs.SetInt("togglestate", 0);
+        }
+        else
+        {
+            isFullscreen = true;
+            PlayerPrefs.SetInt("togglestate", 1);
+        }
+    }
+
+    public void Vsync (bool changeVsync)
+    {
+        if (changeVsync == false)
+        {
+            PlayerPrefs.SetInt("syncstate", 0);
+        }
+        else
+        {
+            changeVsync = true;
+            PlayerPrefs.SetInt("syncstate", 1);
+        }
+
+        if (changeVsync)
+        {
+            QualitySettings.vSyncCount = 1;
+        }
+        else
+        {
+            QualitySettings.vSyncCount = 0;
+        }
+    }
+
+    public void HideCursor()
+    {
+        Cursor.visible = false;
+    }
+}
